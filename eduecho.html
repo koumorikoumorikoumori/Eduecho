@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduEcho - 先生のHTML教材シェアサイト</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --blue: #1a56db; --blue-dark: #1648c0; --blue-deep: #12389b;
+  --amber: #f59e0b; --amber-hover: #fbbf24;
+  --ink: #1e293b; --gray: #64748b; --gray-light: #94a3b8;
+  --line: #e0e4ea; --bg: #f0f2f5; --card: #ffffff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--ink); background: var(--bg); }
+a { text-decoration: none; color: inherit; }
+button { font-family: inherit; }
+
+/* ───────── HEADER ───────── */
+header { background: var(--blue); position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 0 rgba(0,0,0,0.08); }
+.header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 14px; padding: 0 16px; height: 54px; }
+.logo { display: flex; align-items: center; gap: 7px; color: white; cursor: pointer; flex-shrink: 0; }
+.logo svg { display: block; }
+.logo .logo-text { font-family: 'M PLUS Rounded 1c', sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.01em; }
+.logo .logo-text span { color: var(--amber-hover); }
+.header-search { flex: 1; max-width: 420px; display: flex; }
+.header-search input { flex: 1; min-width: 0; border: none; border-radius: 5px 0 0 5px; padding: 8px 12px; font-size: 13px; font-family: inherit; outline: none; }
+.header-search button { background: var(--amber); color: #111; border: none; border-radius: 0 5px 5px 0; padding: 0 14px; font-size: 13px; cursor: pointer; font-weight: 700; }
+.header-search button:hover { background: var(--amber-hover); }
+.header-nav { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.header-nav a { color: rgba(255,255,255,0.88); padding: 7px 12px; border-radius: 5px; font-size: 13px; white-space: nowrap; }
+.header-nav a:hover { background: rgba(255,255,255,0.14); color: white; }
+.header-nav .btn-post { background: var(--amber); color: #111 !important; font-weight: 700; padding: 7px 14px; margin-left: 4px; }
+.header-nav .btn-post:hover { background: var(--amber-hover) !important; }
+
+.subnav { background: var(--blue-dark); }
+.subnav-inner { max-width: 1200px; margin: 0 auto; display: flex; padding: 0 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.subnav-inner::-webkit-scrollbar { display: none; }
+.subnav-inner button { background: none; border: none; padding: 9px 13px; color: rgba(255,255,255,0.7); font-size: 13px; white-space: nowrap; border-bottom: 2px solid transparent; cursor: pointer; transition: color 0.15s; }
+.subnav-inner button:hover, .subnav-inner button.active { color: white; border-bottom-color: var(--amber); }
+
+.filterbar { background: white; border-bottom: 1px solid var(--line); }
+.filterbar-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; padding: 0 16px; overflow-x: auto; }
+.filterbar-inner::-webkit-scrollbar { display: none; }
+.school-btn { padding: 9px 15px; font-size: 13px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--gray); cursor: pointer; white-space: nowrap; font-weight: 500; }
+.school-btn:hover { color: var(--blue); }
+.school-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 700; }
+.filter-sep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; flex-shrink: 0; }
+.grade-chip { padding: 3px 11px; border-radius: 20px; font-size: 12px; border: 1px solid #d1d5db; background: white; color: #4b5563; cursor: pointer; white-space: nowrap; margin: 7px 3px 7px 0; transition: all 0.15s; }
+.grade-chip:hover { border-color: var(--blue); color: var(--blue); }
+.grade-chip.active { background: var(--blue); border-color: var(--blue); color: white; font-weight: 700; }
+
+/* ───────── SETUP BANNER ───────── */
+.setup-banner { background: #fffbeb; border-bottom: 1px solid #fde68a; padding: 9px 16px; text-align: center; font-size: 12.5px; color: #92400e; display: none; }
+.setup-banner.show { display: block; }
+.setup-banner code { background: #fef3c7; padding: 1px 6px; border-radius: 3px; font-size: 11.5px; }
+
+/* ───────── LAYOUT ───────── */
+.page-body { max-width: 1200px; margin: 0 auto; padding: 20px 16px; display: grid; grid-template-columns: 1fr 230px; gap: 20px; }
+main { min-width: 0; }
+.section { margin-bottom: 30px; }
+.section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 13px; }
+.section-header h2 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.section-header h2::before { content: ''; width: 4px; height: 16px; background: var(--blue); border-radius: 2px; }
+.section-header .count { font-size: 12px; color: var(--gray-light); font-weight: 400; }
+
+/* ───────── CARDS ───────── */
+.pickup-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.mat-card { background: var(--card); border-radius: 8px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; transition: box-shadow 0.18s, transform 0.18s, border-color 0.18s; }
+.mat-card:hover { box-shadow: 0 4px 18px rgba(15,40,105,0.12); transform: translateY(-2px); border-color: #bfdbfe; }
+.mat-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.mat-thumb { aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; font-size: 40px; background: #eff6ff; overflow: hidden; position: relative; }
+.pickup-grid .mat-thumb { font-size: 52px; }
+.mat-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.mat-info { padding: 10px 12px 12px; }
+.mat-info h3 { font-size: 13px; font-weight: 700; line-height: 1.45; margin-bottom: 7px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mat-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+.tag { font-size: 10.5px; padding: 1px 8px; border-radius: 3px; font-weight: 600; }
+.tag-school-elem { background: #dbeafe; color: #1d4ed8; }
+.tag-school-mid  { background: #d1fae5; color: #065f46; }
+.tag-school-high { background: #fef3c7; color: #92400e; }
+.tag-subject { background: #f1f5f9; color: #475569; }
+.mat-foot { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--gray-light); }
+.mat-foot .author { margin-left: auto; }
+.card-delete-btn { position: absolute; top: 6px; right: 6px; background: rgba(220,38,38,0.85); color: white; border: none; border-radius: 5px; width: 28px; height: 28px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.card-delete-btn:hover { background: #dc2626; }
+
+/* ───────── EMPTY ───────── */
+.empty-state { background: white; border: 1.5px dashed #cbd5e1; border-radius: 10px; padding: 56px 24px; text-align: center; }
+.empty-state .empty-art { margin-bottom: 18px; }
+.empty-state h3 { font-size: 15px; font-weight: 700; color: var(--gray); margin-bottom: 8px; }
+.empty-state p { font-size: 13px; line-height: 1.8; color: var(--gray-light); }
+.empty-state .btn-empty { display: inline-block; margin-top: 20px; background: var(--blue); color: white; padding: 10px 26px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; }
+.empty-state .btn-empty:hover { background: var(--blue-dark); }
+
+.loading-state { text-align: center; padding: 48px; color: var(--gray-light); font-size: 13px; }
+.spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid #dbeafe; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ───────── SIDEBAR ───────── */
+.side-post-btn { display: block; background: var(--amber); color: #111; text-align: center; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; margin-bottom: 14px; cursor: pointer; border: none; width: 100%; }
+.side-post-btn:hover { background: var(--amber-hover); }
+.side-box { background: white; border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+.side-box h3 { font-size: 11.5px; font-weight: 700; color: var(--gray); letter-spacing: 0.06em; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9; }
+.side-box ul { list-style: none; }
+.side-box li { border-bottom: 1px solid #f8fafc; }
+.side-box li:last-child { border-bottom: none; }
+.side-box li button { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 7px 2px; font-size: 12.5px; color: #334155; background: none; border: none; cursor: pointer; text-align: left; }
+.side-box li button:hover { color: var(--blue); }
+.side-box li button span { font-size: 11px; color: var(--gray-light); }
+.side-empty { font-size: 12px; color: var(--gray-light); text-align: center; padding: 14px 0; line-height: 1.7; }
+.side-rank { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f8fafc; cursor: pointer; }
+.side-rank:last-child { border-bottom: none; }
+.side-rank:hover .rank-title { color: var(--blue); }
+.rank-num { font-size: 13px; font-weight: 900; color: var(--gray-light); width: 16px; flex-shrink: 0; }
+.rank-num.r1 { color: var(--amber); } .rank-num.r2 { color: #94a3b8; } .rank-num.r3 { color: #b45309; }
+.rank-title { font-size: 12px; line-height: 1.45; }
+.rank-sub { font-size: 10.5px; color: var(--gray-light); margin-top: 2px; }
+
+/* ───────── PAGES ───────── */
+.page { display: none; }
+.page.show { display: block; }
+
+/* ───────── UPLOAD ───────── */
+.upload-wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px; }
+.crumb { font-size: 12px; color: var(--gray-light); margin-bottom: 14px; }
+.crumb a { color: var(--blue); cursor: pointer; }
+.form-panel { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 26px; }
+.form-panel h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+.form-panel .form-lead { font-size: 12.5px; color: var(--gray); margin-bottom: 22px; }
+.form-row { margin-bottom: 16px; }
+.form-row label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+.req { color: #ef4444; }
+.form-row input[type=text], .form-row input[type=email], .form-row select, .form-row textarea {
+  width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 9px 11px;
+  font-size: 13.5px; font-family: inherit; outline: none; color: #333; transition: border-color 0.15s, box-shadow 0.15s; background: white;
+}
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+.form-row textarea { height: 84px; resize: vertical; }
+.form-row .field-error { display: none; font-size: 11.5px; color: #ef4444; margin-top: 4px; }
+.form-row.invalid input, .form-row.invalid select { border-color: #ef4444; }
+.form-row.invalid .field-error { display: block; }
+.cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.drop-zone { border: 2px dashed #d1d5db; border-radius: 8px; padding: 26px 20px; text-align: center; cursor: pointer; background: #f8fafc; transition: all 0.18s; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--blue); background: #eff6ff; }
+.drop-zone.has-file { border-color: #16a34a; background: #f0fdf4; border-style: solid; }
+.drop-zone .dz-icon { margin-bottom: 8px; }
+.drop-zone p { font-size: 13px; color: #475569; }
+.drop-zone .dz-hint { font-size: 11.5px; color: var(--gray-light); margin-top: 4px; line-height: 1.6; }
+.drop-zone .dz-filename { font-size: 12.5px; color: #166534; font-weight: 700; margin-top: 6px; word-break: break-all; }
+.submit-btn { background: var(--blue); color: white; border: none; border-radius: 6px; padding: 13px; font-size: 14.5px; cursor: pointer; font-weight: 700; width: 100%; margin-top: 6px; transition: background 0.15s; }
+.submit-btn:hover { background: var(--blue-dark); }
+.submit-btn:disabled { background: #93b4f0; cursor: not-allowed; }
+.progress-wrap { display: none; margin-top: 12px; }
+.progress-wrap.show { display: block; }
+.progress-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--blue); width: 0%; transition: width 0.3s; }
+.progress-label { font-size: 11.5px; color: var(--gray); margin-top: 5px; text-align: center; }
+
+/* ───────── DETAIL MODAL ───────── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 200; padding: 24px; overflow-y: auto; }
+.modal-overlay.show { display: flex; align-items: flex-start; justify-content: center; }
+.modal { background: white; border-radius: 12px; max-width: 880px; width: 100%; margin: auto; overflow: hidden; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.modal-thumb-area { background: #f0f2f5; border-bottom: 1px solid var(--line); padding: 32px 20px; text-align: center; }
+.modal-thumb-inner { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.modal-thumb-inner img { max-height: 180px; border-radius: 6px; object-fit: cover; }
+.play-btn { background: var(--blue); color: white; border: none; border-radius: 8px; padding: 14px 32px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: background 0.15s; box-shadow: 0 4px 14px rgba(26,86,219,0.3); }
+.play-btn:hover { background: var(--blue-dark); }
+.player-frame { width: 100%; aspect-ratio: 16/10; border: none; background: white; display: block; border-top: 1px solid var(--line); }
+.modal-head h2 { font-size: 15px; font-weight: 700; }
+.modal-close { background: none; border: none; font-size: 22px; color: var(--gray-light); cursor: pointer; line-height: 1; padding: 4px; }
+.modal-close:hover { color: var(--ink); }
+.player-frame { width: 100%; aspect-ratio: 16/10; border: none; background: #f8fafc; display: block; }
+.modal-body { padding: 16px 18px; }
+.modal-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.modal-desc { font-size: 13.5px; line-height: 1.8; color: #475569; margin-bottom: 12px; white-space: pre-wrap; }
+.modal-foot { display: flex; align-items: center; gap: 14px; font-size: 12.5px; color: var(--gray); border-top: 1px solid #f1f5f9; padding-top: 12px; }
+.modal-foot .open-new { margin-left: auto; color: var(--blue); font-weight: 700; cursor: pointer; background: none; border: none; font-size: 12.5px; }
+.modal-foot .open-new:hover { text-decoration: underline; }
+
+/* ───────── TOAST ───────── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--ink); color: white; padding: 12px 22px; border-radius: 8px; font-size: 13.5px; z-index: 300; opacity: 0; transition: all 0.3s; box-shadow: 0 8px 30px rgba(0,0,0,0.25); max-width: 90vw; }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { background: #15803d; }
+.toast.error { background: #b91c1c; }
+
+footer { background: var(--ink); color: var(--gray); padding: 22px 16px; text-align: center; font-size: 12px; margin-top: 24px; }
+footer .foot-tag { color: var(--gray-light); margin-bottom: 6px; }
+
+@media (max-width: 920px) {
+  .page-body { grid-template-columns: 1fr; }
+  aside { order: 2; }
+  .pickup-grid { grid-template-columns: repeat(2, 1fr); }
+  .card-grid { grid-template-columns: repeat(2, 1fr); }
+  .header-search { display: none; }
+  .cols3 { grid-template-columns: 1fr; }
+  .cols2 { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo" onclick="goHome()" role="button" tabindex="0">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="3.2" fill="#fbbf24"/>
+        <path d="M13 5.5a7.5 7.5 0 0 1 7.5 7.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M13 2a11 11 0 0 1 11 11" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M13 20.5a7.5 7.5 0 0 1-7.5-7.5" stroke="rgba(255,255,255,0.9)" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M13 24A11 11 0 0 1 2 13" stroke="rgba(255,255,255,0.5)" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      <div class="logo-text">Edu<span>Echo</span></div>
+    </div>
+    <div class="header-search">
+      <input type="text" id="search-input" placeholder="教材名・キーワードで検索" onkeydown="if(event.key==='Enter')doSearch()">
+      <button onclick="doSearch()">検索</button>
+    </div>
+    <nav class="header-nav">
+      <a onclick="goHome()" style="cursor:pointer">教材を探す</a>
+      <a onclick="toggleAdminMode()" id="admin-btn" style="cursor:pointer;background:rgba(255,255,255,0.15)">🔒 管理者ログイン</a>
+      <a onclick="showPage('upload')" class="btn-post" style="cursor:pointer">＋ 投稿する</a>
+    </nav>
+  </div>
+  <div class="subnav">
+    <div class="subnav-inner" id="subject-nav"></div>
+  </div>
+</header>
+
+<div class="filterbar">
+  <div class="filterbar-inner">
+    <span id="school-btns"></span>
+    <div class="filter-sep"></div>
+    <span id="grade-chips"></span>
+  </div>
+</div>
+
+<div class="setup-banner" id="setup-banner">
+  ⚙️ プレビューモードで表示中 — Supabaseのキーを <code>index.html</code> 内の <code>CONFIG</code> に設定すると投稿・保存が有効になります
+</div>
+
+<!-- ───── HOME ───── -->
+<div id="page-home" class="page show">
+  <div class="page-body">
+    <main id="main-content">
+      <div class="loading-state" id="loading">
+        <div class="spinner"></div>
+        <div>教材を読み込んでいます…</div>
+      </div>
+      <div id="sections" style="display:none"></div>
+    </main>
+
+    <aside>
+      <button class="side-post-btn" onclick="showPage('upload')">＋ 教材を投稿する</button>
+      <div class="side-box">
+        <h3>人気ランキング</h3>
+        <div id="side-ranking"><div class="side-empty">教材が投稿されると<br>ランキングが表示されます</div></div>
+      </div>
+      <div class="side-box">
+        <h3>教科から探す</h3>
+        <ul id="side-subjects"></ul>
+      </div>
+      <div class="side-box">
+        <h3>EduEchoについて</h3>
+        <div style="font-size:12px;color:#475569;line-height:1.8">
+          一人の先生の教材が、別の先生に届いて反響（エコー）を呼ぶ。先生による先生のためのフリー教材共有サイトです。
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ───── UPLOAD ───── -->
+<div id="page-upload" class="page">
+  <div class="upload-wrap">
+    <div class="crumb"><a onclick="goHome()">ホーム</a> ＞ 教材を投稿する</div>
+    <div class="form-panel">
+      <h2>教材を投稿する</h2>
+      <p class="form-lead">投稿した教材はすぐに公開され、ほかの先生が自由に使えるようになります。</p>
+
+      <div class="form-row" id="row-title">
+        <label>教材タイトル <span class="req">*</span></label>
+        <input type="text" id="f-title" maxlength="80" placeholder="例：二次関数グラフ シミュレーター">
+        <div class="field-error">タイトルを入力してください</div>
+      </div>
+
+      <div class="cols3">
+        <div class="form-row" id="row-school">
+          <label>校種 <span class="req">*</span></label>
+          <select id="f-school" onchange="syncGradeSelect()">
+            <option value="">選択</option>
+            <option value="小学校">小学校</option>
+            <option value="中学校">中学校</option>
+            <option value="高校">高校</option>
+          </select>
+          <div class="field-error">校種を選んでください</div>
+        </div>
+        <div class="form-row" id="row-grade">
+          <label>学年 <span class="req">*</span></label>
+          <select id="f-grade"><option value="">先に校種を選択</option></select>
+          <div class="field-error">学年を選んでください</div>
+        </div>
+        <div class="form-row" id="row-subject">
+          <label>教科 <span class="req">*</span></label>
+          <select id="f-subject"></select>
+          <div class="field-error">教科を選んでください</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>教材の説明</label>
+        <textarea id="f-desc" maxlength="500" placeholder="どんな教材か、授業での使い方のポイントなどを書くと、ほかの先生が使いやすくなります"></textarea>
+      </div>
+
+      <div class="form-row" id="row-file">
+        <label>教材のHTMLファイル <span class="req">*</span></label>
+        <div class="drop-zone" id="dz-html" onclick="document.getElementById('f-html').click()">
+          <div class="dz-icon">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="1.6"><path d="M12 16V4m0 0L7 9m5-5l5 5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" stroke-linecap="round"/></svg>
+          </div>
+          <p><strong>クリックまたはドラッグ＆ドロップ</strong></p>
+          <p class="dz-hint">画像やスクリプトを含む場合は1つのHTMLファイルにまとめてください（最大10MB）<br>※ そのままブラウザで動く形式で投稿されます</p>
+          <div class="dz-filename" id="fn-html"></div>
+        </div>
+        <input type="file" id="f-html" accept=".html,.htm" style="display:none" onchange="onFilePick(this,'dz-html','fn-html')">
+        <div class="field-error">HTMLファイルを選択してください</div>
+      </div>
+
+      <div class="form-row">
+        <label>サムネイル画像（任意）</label>
+        <div class="drop-zone" id="dz-img" style="padding:16px" onclick="document.getElementById('f-img').click()">
+          <p style="font-size:12.5px">🖼️ クリックして画像を選択（PNG / JPG・2MBまで）</p>
+          <div class="dz-filename" id="fn-img"></div>
+        </div>
+        <input type="file" id="f-img" accept="image/png,image/jpeg" style="display:none" onchange="onFilePick(this,'dz-img','fn-img')">
+      </div>
+
+      <div class="form-row" id="row-author">
+        <label>投稿者名 <span class="req">*</span></label>
+        <input type="text" id="f-author" maxlength="30" placeholder="例：山田（ニックネームでもOK）">
+        <div class="field-error">投稿者名を入力してください</div>
+      </div>
+
+      <button class="submit-btn" id="submit-btn" onclick="submitMaterial()">投稿する</button>
+      <div class="progress-wrap" id="progress">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label">アップロード中…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ───── DETAIL MODAL ───── -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h2 id="m-title"></h2>
+      <button class="modal-close" onclick="closeModal()" aria-label="閉じる">×</button>
+    </div>
+    <div class="modal-thumb-area" id="m-thumb-area">
+      <div class="modal-thumb-inner">
+        <div id="m-thumb-img"></div>
+        <button class="play-btn" id="m-play-btn">↗ 新しいタブで開く</button>
+      </div>
+    </div>
+    <iframe
+      id="m-frame"
+      class="player-frame"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups"
+      allow="autoplay"
+      style="display:none"
+      title="教材プレビュー"
+    ></iframe>
+    <div class="modal-body">
+      <div class="modal-meta" id="m-meta"></div>
+      <div class="modal-desc" id="m-desc"></div>
+      <div class="modal-foot">
+        <span id="m-views"></span>
+        <span id="m-author"></span>
+        <span id="m-date"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="foot-tag">発信が、反響になる。</div>
+  <div>© 2026 EduEcho — 先生のためのフリー教材共有サイト</div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════
+   CONFIG — Supabaseの設定をここに貼り付け
+   Supabase管理画面 → Settings → API からコピー
+   ════════════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL: "https://znpeqavoogqtwbhdfcpj.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpucGVxYXZvb2dxdHdiaGRmY3BqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDE1NTIsImV4cCI6MjA5NjYxNzU1Mn0.Egof1b58-qoOyTSP_cpKcLVx9WZsfUrFnjm2AJDV5lM"
+};
+
+const SUBJECTS = ['算数・数学','国語','理科','社会','英語','音楽・図工・美術','体育・保健','技術・家庭','情報・ICT','総合・その他'];
+const GRADES = { '小学校': ['1年','2年','3年','4年','5年','6年','全学年'], '中学校': ['中1','中2','中3','全学年'], '高校': ['高1','高2','高3','全学年'] };
+const SUBJECT_EMOJI = { '算数・数学':'🧮','国語':'✏️','理科':'🔬','社会':'🗾','英語':'🗣️','音楽・図工・美術':'🎨','体育・保健':'⚽','技術・家庭':'🔧','情報・ICT':'💻','総合・その他':'📚' };
+const SCHOOL_TAG = { '小学校':'tag-school-elem','中学校':'tag-school-mid','高校':'tag-school-high' };
+
+let sb = null;
+let allMaterials = [];
+const filter = { school: 'all', grade: 'all', subject: 'all', q: '' };
+
+/* ───── 初期化 ───── */
+function init() {
+  if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY) {
+    sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+  } else {
+    document.getElementById('setup-banner').classList.add('show');
+  }
+  buildSubjectNav();
+  buildSchoolBtns();
+  buildGradeChips();
+  buildSubjectSelect();
+  buildSideSubjects();
+  loadMaterials();
+}
+
+/* ───── データ読み込み ───── */
+async function loadMaterials() {
+  if (!sb) { allMaterials = []; renderAll(); return; }
+  try {
+    const { data, error } = await sb.from('materials').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    allMaterials = data || [];
+  } catch (e) {
+    console.error(e);
+    showToast('教材の読み込みに失敗しました', 'error');
+    allMaterials = [];
+  }
+  renderAll();
+}
+
+/* ───── 描画 ───── */
+function renderAll() {
+  document.getElementById('loading').style.display = 'none';
+  const wrap = document.getElementById('sections');
+  wrap.style.display = 'block';
+
+  const list = applyFilter(allMaterials);
+  const isFiltered = filter.school !== 'all' || filter.grade !== 'all' || filter.subject !== 'all' || filter.q;
+
+  if (allMaterials.length === 0) {
+    wrap.innerHTML = emptyHero();
+  } else if (isFiltered) {
+    wrap.innerHTML = sectionHTML('検索結果', list, 'card-grid') ||
+      '<div class="empty-state"><h3>条件に合う教材が見つかりません</h3><p>絞り込み条件を変えてみてください。</p></div>';
+  } else {
+    const byViews = [...allMaterials].sort((a,b) => (b.views||0)-(a.views||0));
+    let html = '';
+    html += sectionHTML('人気の教材', byViews.slice(0,3), 'pickup-grid');
+    html += sectionHTML('新着教材', allMaterials.slice(0,8), 'card-grid');
+    wrap.innerHTML = html;
+  }
+  renderRanking();
+  renderSideCounts();
+}
+
+function emptyHero() {
+  return `<div class="empty-state">
+    <div class="empty-art">
+      <svg width="64" height="64" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="3.2" fill="#f59e0b"/>
+        <path d="M13 5.5a7.5 7.5 0 0 1 7.5 7.5" stroke="#93c5fd" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M13 2a11 11 0 0 1 11 11" stroke="#dbeafe" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M13 20.5a7.5 7.5 0 0 1-7.5-7.5" stroke="#93c5fd" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M13 24A11 11 0 0 1 2 13" stroke="#dbeafe" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h3>最初の教材を投稿しましょう</h3>
+    <p>あなたの教材が、誰かの授業を変えるかもしれません。<br>投稿された教材はここに表示されます。</p>
+    <button class="btn-empty" onclick="showPage('upload')">＋ 教材を投稿する</button>
+  </div>`;
+}
+
+function sectionHTML(title, items, gridClass) {
+  if (!items || items.length === 0) return '';
+  const cards = items.map(cardHTML).join('');
+  return `<div class="section">
+    <div class="section-header"><h2>${title}</h2><span class="count">${items.length}件</span></div>
+    <div class="${gridClass}">${cards}</div>
+  </div>`;
+}
+
+function cardHTML(m) {
+  const thumb = m.thumbnail_url
+    ? `<img src="${esc(m.thumbnail_url)}" alt="" loading="lazy">`
+    : (SUBJECT_EMOJI[m.subject] || '📚');
+  const deleteBtn = isAdmin
+    ? `<button class="card-delete-btn" onclick="event.stopPropagation();confirmDelete(${m.id})" title="削除">🗑️</button>`
+    : '';
+  return `<div class="mat-card" tabindex="0" onclick="openDetail(${m.id})" onkeydown="if(event.key==='Enter')openDetail(${m.id})" style="position:relative">
+    ${deleteBtn}
+    <div class="mat-thumb">${thumb}</div>
+    <div class="mat-info">
+      <h3>${esc(m.title)}</h3>
+      <div class="mat-tags">
+        <span class="tag ${SCHOOL_TAG[m.school]||'tag-subject'}">${esc(m.school)}</span>
+        <span class="tag tag-subject">${esc(m.subject)}</span>
+        <span class="tag tag-subject">${esc(m.grade)}</span>
+      </div>
+      <div class="mat-foot"><span>👁 ${m.views||0}</span><span class="author">${esc(m.author_name)} 先生</span></div>
+    </div>
+  </div>`;
+}
+
+function renderRanking() {
+  const el = document.getElementById('side-ranking');
+  if (allMaterials.length === 0) {
+    el.innerHTML = '<div class="side-empty">教材が投稿されると<br>ランキングが表示されます</div>';
+    return;
+  }
+  const top = [...allMaterials].sort((a,b)=>(b.views||0)-(a.views||0)).slice(0,5);
+  el.innerHTML = top.map((m,i) => `<div class="side-rank" onclick="openDetail(${m.id})">
+    <div class="rank-num r${i+1}">${i+1}</div>
+    <div><div class="rank-title">${esc(m.title)}</div><div class="rank-sub">👁 ${m.views||0} · ${esc(m.author_name)}先生</div></div>
+  </div>`).join('');
+}
+
+function renderSideCounts() {
+  const counts = {};
+  allMaterials.forEach(m => counts[m.subject] = (counts[m.subject]||0)+1);
+  document.getElementById('side-subjects').innerHTML = SUBJECTS.map(s =>
+    `<li><button onclick="setSubject('${s}')">${s} <span>${counts[s]||0}件</span></button></li>`).join('');
+}
+
+/* ───── フィルター ───── */
+function applyFilter(list) {
+  return list.filter(m => {
+    if (filter.school !== 'all' && m.school !== filter.school) return false;
+    if (filter.grade !== 'all' && m.grade !== filter.grade) return false;
+    if (filter.subject !== 'all' && m.subject !== filter.subject) return false;
+    if (filter.q) {
+      const t = (m.title+' '+(m.description||'')+' '+m.author_name).toLowerCase();
+      if (!t.includes(filter.q.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+
+function buildSubjectNav() {
+  const nav = document.getElementById('subject-nav');
+  nav.innerHTML = `<button class="active" data-s="all">すべての教科</button>` +
+    SUBJECTS.map(s => `<button data-s="${s}">${s}</button>`).join('');
+  nav.querySelectorAll('button').forEach(b => b.onclick = () => setSubject(b.dataset.s));
+}
+
+function setSubject(s) {
+  filter.subject = s;
+  document.querySelectorAll('#subject-nav button').forEach(b =>
+    b.classList.toggle('active', b.dataset.s === s));
+  goHome(true); renderAll();
+}
+
+function buildSchoolBtns() {
+  const el = document.getElementById('school-btns');
+  const opts = [['all','すべて'],['小学校','小学校'],['中学校','中学校'],['高校','高校']];
+  el.innerHTML = opts.map(([v,l],i) => `<button class="school-btn${i===0?' active':''}" data-v="${v}">${l}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    filter.school = b.dataset.v; filter.grade = 'all';
+    el.querySelectorAll('button').forEach(x => x.classList.toggle('active', x===b));
+    buildGradeChips(); renderAll();
+  });
+}
+
+function buildGradeChips() {
+  const el = document.getElementById('grade-chips');
+  let grades = [];
+  if (filter.school === 'all') Object.values(GRADES).forEach(g => grades.push(...g.filter(x=>x!=='全学年')));
+  else grades = GRADES[filter.school] || [];
+  el.innerHTML = `<button class="grade-chip active" data-v="all">すべての学年</button>` +
+    grades.map(g => `<button class="grade-chip" data-v="${g}">${g}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    filter.grade = b.dataset.v;
+    el.querySelectorAll('button').forEach(x => x.classList.toggle('active', x===b));
+    renderAll();
+  });
+}
+
+function doSearch() {
+  filter.q = document.getElementById('search-input').value.trim();
+  goHome(true); renderAll();
+}
+
+/* ───── 詳細モーダル ───── */
+async function openDetail(id) {
+  const m = allMaterials.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('m-title').textContent = m.title;
+
+  // サムネイルまたは絵文字
+  const thumbArea = document.getElementById('m-thumb-img');
+  if (m.thumbnail_url) {
+    thumbArea.innerHTML = `<img src="${esc(m.thumbnail_url)}" alt="">`;
+  } else {
+    thumbArea.innerHTML = `<div style="font-size:72px;line-height:1">${SUBJECT_EMOJI[m.subject]||'📚'}</div>`;
+  }
+
+  // iframeにHTMLを読み込む（blob URL経由でContent-Type問題を回避）
+  const frame = document.getElementById('m-frame');
+  frame.style.display = 'block';
+  try {
+    const res = await fetch(m.file_url);
+    const html = await res.text();
+    const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
+    frame.src = blobUrl;
+    // 古いblobURLを解放
+    frame._blobUrl = blobUrl;
+  } catch(e) {
+    frame.style.display = 'none';
+    console.warn('iframe load failed:', e);
+  }
+
+  // 新しいタブボタン
+  document.getElementById('m-play-btn').onclick = () => window.open(m.file_url, '_blank');
+
+  document.getElementById('m-meta').innerHTML =
+    `<span class="tag ${SCHOOL_TAG[m.school]||'tag-subject'}">${esc(m.school)}</span>
+     <span class="tag tag-subject">${esc(m.subject)}</span>
+     <span class="tag tag-subject">${esc(m.grade)}</span>`;
+  document.getElementById('m-desc').textContent = m.description || '';
+  document.getElementById('m-views').textContent = `👁 ${(m.views||0)+1}`;
+  document.getElementById('m-author').textContent = `${m.author_name} 先生`;
+  document.getElementById('m-date').textContent = new Date(m.created_at).toLocaleDateString('ja-JP');
+  document.getElementById('modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  if (sb) {
+    m.views = (m.views||0) + 1;
+    sb.from('materials').update({ views: m.views }).eq('id', id).then(()=>{});
+  }
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  const frame = document.getElementById('m-frame');
+  if (frame._blobUrl) { URL.revokeObjectURL(frame._blobUrl); frame._blobUrl = null; }
+  frame.src = 'about:blank';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ───── 投稿 ───── */
+function buildSubjectSelect() {
+  document.getElementById('f-subject').innerHTML =
+    '<option value="">選択</option>' + SUBJECTS.map(s => `<option>${s}</option>`).join('');
+}
+function syncGradeSelect() {
+  const s = document.getElementById('f-school').value;
+  const g = document.getElementById('f-grade');
+  g.innerHTML = s ? '<option value="">選択</option>' + GRADES[s].map(x=>`<option>${x}</option>`).join('')
+                  : '<option value="">先に校種を選択</option>';
+}
+
+function onFilePick(input, dzId, fnId) {
+  const dz = document.getElementById(dzId);
+  const fn = document.getElementById(fnId);
+  if (input.files[0]) {
+    const f = input.files[0];
+    const limit = input.id === 'f-html' ? 10*1024*1024 : 2*1024*1024;
+    if (f.size > limit) {
+      showToast(`ファイルが大きすぎます（上限 ${limit/1024/1024}MB）`, 'error');
+      input.value = ''; fn.textContent = ''; dz.classList.remove('has-file');
+      return;
+    }
+    fn.textContent = '✓ ' + f.name;
+    dz.classList.add('has-file');
+  } else { fn.textContent = ''; dz.classList.remove('has-file'); }
+}
+
+// ドラッグ＆ドロップ
+['dz-html','dz-img'].forEach(id => {
+  const dz = document.getElementById(id);
+  const input = document.getElementById(id === 'dz-html' ? 'f-html' : 'f-img');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) {
+      input.files = e.dataTransfer.files;
+      onFilePick(input, id, id === 'dz-html' ? 'fn-html' : 'fn-img');
+    }
+  });
+});
+
+function validate() {
+  let ok = true;
+  const checks = [
+    ['row-title', document.getElementById('f-title').value.trim()],
+    ['row-school', document.getElementById('f-school').value],
+    ['row-grade', document.getElementById('f-grade').value],
+    ['row-subject', document.getElementById('f-subject').value],
+    ['row-file', document.getElementById('f-html').files[0]],
+    ['row-author', document.getElementById('f-author').value.trim()],
+  ];
+  checks.forEach(([rowId, val]) => {
+    const row = document.getElementById(rowId);
+    if (!val) { row.classList.add('invalid'); ok = false; }
+    else row.classList.remove('invalid');
+  });
+  return ok;
+}
+
+async function submitMaterial() {
+  if (!validate()) { showToast('入力内容を確認してください', 'error'); return; }
+  if (!sb) { showToast('Supabaseが未設定のため投稿できません（プレビューモード）', 'error'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  const prog = document.getElementById('progress');
+  const fill = document.getElementById('progress-fill');
+  const label = document.getElementById('progress-label');
+  btn.disabled = true; prog.classList.add('show');
+
+  try {
+    const stamp = Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    const htmlFile = document.getElementById('f-html').files[0];
+    const imgFile = document.getElementById('f-img').files[0];
+
+    label.textContent = '教材ファイルをアップロード中…'; fill.style.width = '25%';
+    const htmlPath = `html/${stamp}.html`;
+    // Content-Typeを明示してアップロード（文字化け・iframe表示バグを防ぐ）
+    const htmlBlob = new Blob([await htmlFile.text()], { type: 'text/html; charset=utf-8' });
+    const { error: e1 } = await sb.storage.from('materials').upload(htmlPath, htmlBlob, {
+      contentType: 'text/html; charset=utf-8',
+      upsert: false
+    });
+    if (e1) throw e1;
+    const fileUrl = sb.storage.from('materials').getPublicUrl(htmlPath).data.publicUrl;
+
+    let thumbUrl = null;
+    if (imgFile) {
+      label.textContent = 'サムネイルをアップロード中…'; fill.style.width = '55%';
+      const ext = imgFile.name.split('.').pop();
+      const imgPath = `thumbs/${stamp}.${ext}`;
+      const { error: e2 } = await sb.storage.from('materials').upload(imgPath, imgFile);
+      if (e2) throw e2;
+      thumbUrl = sb.storage.from('materials').getPublicUrl(imgPath).data.publicUrl;
+    }
+
+    label.textContent = '教材情報を保存中…'; fill.style.width = '80%';
+    const { error: e3 } = await sb.from('materials').insert({
+      title: document.getElementById('f-title').value.trim(),
+      school: document.getElementById('f-school').value,
+      grade: document.getElementById('f-grade').value,
+      subject: document.getElementById('f-subject').value,
+      description: document.getElementById('f-desc').value.trim(),
+      author_name: document.getElementById('f-author').value.trim(),
+      file_url: fileUrl,
+      thumbnail_url: thumbUrl,
+      views: 0
+    });
+    if (e3) throw e3;
+
+    fill.style.width = '100%'; label.textContent = '完了！';
+    showToast('教材を投稿しました 🎉', 'success');
+    resetForm();
+    await loadMaterials();
+    setTimeout(() => goHome(), 600);
+  } catch (e) {
+    console.error(e);
+    showToast('投稿に失敗しました：' + (e.message || e), 'error');
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { prog.classList.remove('show'); fill.style.width = '0%'; }, 800);
+  }
+}
+
+function resetForm() {
+  ['f-title','f-desc','f-author'].forEach(id => document.getElementById(id).value = '');
+  ['f-school','f-subject'].forEach(id => document.getElementById(id).selectedIndex = 0);
+  syncGradeSelect();
+  ['f-html','f-img'].forEach(id => document.getElementById(id).value = '');
+  ['fn-html','fn-img'].forEach(id => document.getElementById(id).textContent = '');
+  ['dz-html','dz-img'].forEach(id => document.getElementById(id).classList.remove('has-file'));
+  document.querySelectorAll('.form-row.invalid').forEach(r => r.classList.remove('invalid'));
+}
+
+/* ───── ページ切替・通知 ───── */
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+  document.getElementById('page-' + name).classList.add('show');
+  window.scrollTo(0, 0);
+}
+function goHome(keepFilter) {
+  if (!keepFilter) {
+    filter.q = '';
+    document.getElementById('search-input').value = '';
+  }
+  showPage('home');
+}
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ───── 管理者機能 ───── */
+// ★ここでパスワードを変更してください★
+const ADMIN_PASSWORD = 'eduecho2026';
+let isAdmin = false;
+let deleteTargetId = null;
+
+function toggleAdminMode() {
+  if (isAdmin) {
+    // ログアウト
+    isAdmin = false;
+    document.getElementById('admin-btn').textContent = '🔒 管理者ログイン';
+    document.getElementById('admin-btn').style.background = 'rgba(255,255,255,0.15)';
+    renderAll();
+    showToast('管理者モードを終了しました');
+    return;
+  }
+  // ログインモーダルを開く
+  document.getElementById('admin-modal').classList.add('show');
+  document.getElementById('admin-pw-input').value = '';
+  setTimeout(() => document.getElementById('admin-pw-input').focus(), 100);
+}
+
+function adminLogin() {
+  const pw = document.getElementById('admin-pw-input').value;
+  if (pw === ADMIN_PASSWORD) {
+    isAdmin = true;
+    document.getElementById('admin-modal').classList.remove('show');
+    document.getElementById('admin-btn').textContent = '🔓 管理者モード中';
+    document.getElementById('admin-btn').style.background = '#f59e0b';
+    document.getElementById('admin-btn').style.color = '#111';
+    renderAll();
+    showToast('管理者モードで入りました', 'success');
+  } else {
+    document.getElementById('admin-pw-error').style.display = 'block';
+    document.getElementById('admin-pw-input').focus();
+  }
+}
+
+function confirmDelete(id) {
+  deleteTargetId = id;
+  const m = allMaterials.find(x => x.id === id);
+  document.getElementById('delete-target-name').textContent = m ? m.title : '';
+  document.getElementById('delete-modal').classList.add('show');
+}
+
+async function executeDelete() {
+  if (!deleteTargetId || !sb) return;
+  const m = allMaterials.find(x => x.id === deleteTargetId);
+  try {
+    // Storageからファイル削除
+    if (m && m.file_url) {
+      const path = m.file_url.split('/materials/')[1];
+      if (path) await sb.storage.from('materials').remove([decodeURIComponent(path)]);
+    }
+    if (m && m.thumbnail_url) {
+      const path = m.thumbnail_url.split('/materials/')[1];
+      if (path) await sb.storage.from('materials').remove([decodeURIComponent(path)]);
+    }
+    // DBから削除
+    const { error } = await sb.from('materials').delete().eq('id', deleteTargetId);
+    if (error) throw error;
+    document.getElementById('delete-modal').classList.remove('show');
+    closeModal();
+    showToast('教材を削除しました', 'success');
+    await loadMaterials();
+  } catch(e) {
+    console.error(e);
+    showToast('削除に失敗しました：' + (e.message || e), 'error');
+  }
+  deleteTargetId = null;
+}
+
+init();
+</script>
+
+<!-- 管理者ログインモーダル -->
+<div class="modal-overlay" id="admin-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <h2>🔒 管理者ログイン</h2>
+      <button class="modal-close" onclick="document.getElementById('admin-modal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body" style="padding:24px">
+      <div class="form-row">
+        <label>パスワード</label>
+        <input type="password" id="admin-pw-input" placeholder="管理者パスワードを入力"
+          onkeydown="if(event.key==='Enter')adminLogin()"
+          style="width:100%;border:1px solid #d1d5db;border-radius:6px;padding:9px 11px;font-size:14px;font-family:inherit;outline:none">
+        <div id="admin-pw-error" style="display:none;font-size:12px;color:#ef4444;margin-top:6px">パスワードが違います</div>
+      </div>
+      <button onclick="adminLogin()" style="width:100%;background:#1a56db;color:white;border:none;border-radius:6px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px">ログイン</button>
+    </div>
+  </div>
+</div>
+
+<!-- 削除確認モーダル -->
+<div class="modal-overlay" id="delete-modal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <h2>🗑️ 教材を削除しますか？</h2>
+      <button class="modal-close" onclick="document.getElementById('delete-modal').classList.remove('show')">×</button>
+    </div>
+    <div class="modal-body" style="padding:24px">
+      <p style="font-size:14px;color:#475569;margin-bottom:6px">以下の教材を完全に削除します。この操作は取り消せません。</p>
+      <p style="font-size:14px;font-weight:700;color:#1e293b;background:#f8fafc;padding:10px 12px;border-radius:6px;border:1px solid #e0e4ea" id="delete-target-name"></p>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button onclick="document.getElementById('delete-modal').classList.remove('show')"
+          style="flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:6px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">キャンセル</button>
+        <button onclick="executeDelete()"
+          style="flex:1;background:#dc2626;color:white;border:none;border-radius:6px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">削除する</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
