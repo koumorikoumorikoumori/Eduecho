@@ -630,8 +630,21 @@ async function openDetail(id) {
     console.warn('iframe load failed:', e);
   }
 
-  // 新しいタブボタン
-  document.getElementById('m-play-btn').onclick = () => window.open(m.file_url, '_blank');
+  // 新しいタブボタン（blob URL経由で開くことでContent-Type問題を回避）
+  document.getElementById('m-play-btn').onclick = async () => {
+    try {
+      const res = await fetch(m.file_url);
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html; charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      const win = window.open(blobUrl, '_blank');
+      // タブが開いたあとURLを解放
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch(e) {
+      // フォールバック：直接開く
+      window.open(m.file_url, '_blank');
+    }
+  };
 
   document.getElementById('m-meta').innerHTML =
     `<span class="tag ${SCHOOL_TAG[m.school]||'tag-subject'}">${esc(m.school)}</span>
