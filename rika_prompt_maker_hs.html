@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高校理科 プロンプトメーカー | HTML教材づくり研修ツール</title>
+<style>
+  :root{
+    --ink:#17272e;
+    --ink-soft:#4a5c66;
+    --paper:#f4f7f8;
+    --grid:#e0e9ec;
+    --teal:#0f6e7d;
+    --teal-deep:#0a5058;
+    --amber:#e59a2e;
+    --amber-deep:#c47c14;
+    --white:#ffffff;
+    --line:#c1d3d7;
+    --ok:#2e8b57;
+    --radius:14px;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+    color:var(--ink);
+    background-color:var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:28px 28px;
+    line-height:1.7;min-height:100vh;
+  }
+  .wrap{max-width:900px;margin:0 auto;padding:32px 20px 80px;}
+
+  header{margin-bottom:34px;}
+  .flask{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--white);border:2px solid var(--ink);
+    border-radius:999px;padding:6px 16px;font-weight:700;font-size:.85rem;
+    box-shadow:3px 3px 0 var(--teal);margin-bottom:18px;
+  }
+  h1{font-size:clamp(1.6rem,4.5vw,2.4rem);letter-spacing:.04em;line-height:1.35;}
+  h1 .accent{color:var(--teal);}
+  .lead{margin-top:12px;color:var(--ink-soft);font-size:.98rem;max-width:660px;}
+
+  .step{
+    background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius);
+    padding:24px 22px;margin-bottom:22px;box-shadow:0 2px 0 rgba(23,39,46,.06);
+  }
+  .step-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+  .step-num{
+    flex:none;width:38px;height:38px;border-radius:50%;
+    background:var(--teal);color:#fff;font-weight:700;
+    display:flex;align-items:center;justify-content:center;font-size:1.05rem;
+  }
+  .step-head h2{font-size:1.12rem;letter-spacing:.03em;}
+  .step-head .opt{font-size:.75rem;color:var(--ink-soft);font-weight:400;margin-left:4px;}
+  .hint{font-size:.85rem;color:var(--ink-soft);margin:-8px 0 14px 50px;}
+  .subhead{font-weight:700;font-size:.88rem;margin:16px 0 8px;color:var(--ink-soft);}
+
+  .chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{
+    border:1.5px solid var(--line);background:var(--paper);border-radius:999px;
+    padding:8px 18px;font-size:.95rem;cursor:pointer;transition:all .15s ease;
+    color:var(--ink);font-family:inherit;
+  }
+  .chip:hover{border-color:var(--teal);}
+  .chip:focus-visible{outline:3px solid var(--amber);outline-offset:2px;}
+  .chip.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700;box-shadow:2px 2px 0 var(--teal-deep);}
+  .chip.subj.on{background:var(--teal-deep);border-color:var(--teal-deep);}
+  .placeholder-note{color:var(--ink-soft);font-size:.9rem;padding:6px 2px;}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .card{
+    text-align:left;border:1.5px solid var(--line);background:var(--paper);
+    border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .15s ease;
+    font-family:inherit;color:var(--ink);
+  }
+  .card:hover{border-color:var(--teal);transform:translateY(-1px);}
+  .card:focus-visible{outline:3px solid var(--amber);outline-offset:2px;}
+  .card.on{background:#e3f2f2;border-color:var(--teal);box-shadow:2px 2px 0 var(--teal-deep);}
+  .card .icon{font-size:1.5rem;display:block;margin-bottom:6px;}
+  .card .name{font-weight:700;font-size:.98rem;}
+  .card .desc{font-size:.8rem;color:var(--ink-soft);margin-top:4px;line-height:1.5;}
+
+  .opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .opt-block label.title{display:block;font-weight:700;font-size:.9rem;margin-bottom:8px;}
+  select,input[type=text],textarea{
+    width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;
+    font-size:.95rem;font-family:inherit;background:var(--paper);color:var(--ink);
+  }
+  select:focus,input:focus,textarea:focus{outline:3px solid var(--amber);outline-offset:1px;border-color:var(--teal);}
+  textarea{resize:vertical;min-height:70px;}
+  .full{grid-column:1 / -1;}
+
+  .generate-area{text-align:center;margin:30px 0;}
+  .btn-generate{
+    font-family:inherit;font-size:1.15rem;font-weight:700;letter-spacing:.05em;
+    background:var(--amber);color:#3a2a08;border:2px solid #3a2a08;border-radius:999px;
+    padding:16px 46px;cursor:pointer;box-shadow:4px 4px 0 var(--amber-deep);
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn-generate:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--amber-deep);}
+  .btn-generate:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--amber-deep);}
+  .btn-generate:focus-visible{outline:3px solid var(--teal);outline-offset:3px;}
+  .gen-warn{margin-top:10px;font-size:.88rem;color:#b0452b;min-height:1.4em;}
+
+  .report{
+    display:none;background:var(--white);border:2px solid var(--ink);border-radius:var(--radius);
+    overflow:hidden;box-shadow:6px 6px 0 rgba(15,110,125,.25);
+  }
+  .report.show{display:block;animation:pop .3s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .report-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--ink);color:#fff;padding:12px 18px;flex-wrap:wrap;
+  }
+  .report-bar .title{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px;}
+  .report-actions{display:flex;gap:8px;}
+  .btn-copy,.btn-dl{
+    font-family:inherit;font-size:.88rem;font-weight:700;border-radius:8px;
+    padding:8px 16px;cursor:pointer;border:none;transition:opacity .15s ease;
+  }
+  .btn-copy{background:var(--amber);color:#3a2a08;}
+  .btn-dl{background:#38555a;color:#fff;}
+  .btn-copy:hover,.btn-dl:hover{opacity:.85;}
+  .btn-copy:focus-visible,.btn-dl:focus-visible{outline:3px solid var(--amber);outline-offset:2px;}
+  .btn-copy.copied{background:var(--ok);color:#fff;}
+  pre#promptOut{
+    white-space:pre-wrap;word-break:break-word;padding:24px 26px;font-size:.9rem;line-height:1.85;
+    font-family:inherit;
+    background:repeating-linear-gradient(transparent,transparent 32px,#eef5f5 32px,#eef5f5 33px);
+    max-height:540px;overflow-y:auto;
+  }
+  .next-steps{
+    margin-top:18px;background:#fdf6e8;border:1.5px dashed var(--amber-deep);border-radius:12px;
+    padding:16px 20px;font-size:.9rem;display:none;
+  }
+  .next-steps.show{display:block;}
+  .next-steps strong{color:var(--amber-deep);}
+  .next-steps ol{margin:8px 0 0 22px;}
+  .next-steps li{margin-bottom:4px;}
+
+  .howto{margin-top:46px;border-top:2px dashed var(--line);padding-top:28px;font-size:.9rem;color:var(--ink-soft);}
+  .howto h3{color:var(--ink);font-size:1rem;margin-bottom:10px;}
+  .howto ol{margin-left:22px;}
+  .howto li{margin-bottom:6px;}
+
+  @media (max-width:560px){
+    .opt-grid{grid-template-columns:1fr;}
+    .hint{margin-left:0;}
+    pre#promptOut{padding:18px 14px;font-size:.85rem;}
+  }
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none !important;transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="flask">🧪 先生のためのAI活用研修ツール</div>
+    <h1>高校理科 <span class="accent">プロンプトメーカー</span></h1>
+    <p class="lead">学年・科目・単元・教材の種類を選ぶだけで、生成AIに貼り付けるための「プロンプト(指示文)」を自動でつくります。プログラミングの知識は不要です。単元は高等学校学習指導要領(平成30年告示)の科目・内容に沿って構成しています。できあがったプロンプトを生成AI(Claude・ChatGPT・Geminiなど)に貼り付けると、担当科目に合ったHTML教材が生成されます。</p>
+  </header>
+
+  <!-- STEP 1 -->
+  <section class="step" aria-labelledby="s1">
+    <div class="step-head"><div class="step-num">1</div><h2 id="s1">対象学年を選ぶ</h2></div>
+    <p class="hint">学年を選ぶと、その学年で標準的に開講される科目が上に表示されます(履修学年は学校により異なります)。</p>
+    <div class="chips" id="gradeChips" role="group" aria-label="学年の選択"></div>
+  </section>
+
+  <!-- STEP 2 -->
+  <section class="step" aria-labelledby="s2">
+    <div class="step-head"><div class="step-num">2</div><h2 id="s2">科目と単元を選ぶ</h2></div>
+    <div class="subhead">科目</div>
+    <div class="chips" id="subjChips" role="group" aria-label="科目の選択">
+      <span class="placeholder-note">← まず学年を選んでください</span>
+    </div>
+    <div class="subhead" id="unitLabel" style="display:none;">単元</div>
+    <div class="chips" id="unitChips" role="group" aria-label="単元の選択"></div>
+    <div style="margin-top:14px;">
+      <label class="title" for="customUnit" style="font-weight:700;font-size:.9rem;display:block;margin-bottom:6px;">自由入力(一覧にない単元・探究テーマはこちら)</label>
+      <input type="text" id="customUnit" placeholder="例:探究活動「校庭の土壌に含まれる金属イオンの分析」、SSHの課題研究テーマ など">
+    </div>
+  </section>
+
+  <!-- STEP 3 -->
+  <section class="step" aria-labelledby="s3">
+    <div class="step-head"><div class="step-num">3</div><h2 id="s3">教材の種類を選ぶ</h2></div>
+    <div class="cards" id="typeCards" role="group" aria-label="教材の種類の選択"></div>
+  </section>
+
+  <!-- STEP 4 -->
+  <section class="step" aria-labelledby="s4">
+    <div class="step-head"><div class="step-num">4</div><h2 id="s4">オプション <span class="opt">(そのままでもOK)</span></h2></div>
+    <div class="opt-grid">
+      <div class="opt-block">
+        <label class="title" for="level">レベル</label>
+        <select id="level">
+          <option value="標準">教科書標準レベル</option>
+          <option value="基礎">基礎固め(つまずきやすい生徒の支援を重視)</option>
+          <option value="共通テスト">共通テスト・思考力重視</option>
+          <option value="発展">発展・国公立二次/難関私大レベル</option>
+        </select>
+      </div>
+      <div class="opt-block">
+        <label class="title" for="purpose">使う場面</label>
+        <select id="purpose">
+          <option value="授業内">授業内での提示・演習</option>
+          <option value="予習復習">生徒の予習・復習(自習用)</option>
+          <option value="実験前後">実験・観察の事前指導/振り返り</option>
+          <option value="受験対策">受験対策・問題演習</option>
+        </select>
+      </div>
+      <div class="opt-block">
+        <label class="title" for="quizCount">問題数(クイズ・演習の場合)</label>
+        <select id="quizCount">
+          <option value="5">5問</option>
+          <option value="10" selected>10問</option>
+          <option value="15">15問</option>
+          <option value="20">20問</option>
+        </select>
+      </div>
+      <div class="opt-block">
+        <label class="title" for="device">主に使う端末</label>
+        <select id="device">
+          <option value="tablet" selected>タブレット/Chromebook(1人1台端末)</option>
+          <option value="pc">PC</option>
+          <option value="projector">電子黒板・プロジェクター(一斉提示)</option>
+        </select>
+      </div>
+      <div class="opt-block full">
+        <label class="title" for="math">数式・グラフの扱い</label>
+        <select id="math">
+          <option value="on">数式やグラフを積極的に使う(物理・化学の計算、関数のグラフなど)</option>
+          <option value="off">数式は最小限にする(定性的な理解を重視)</option>
+        </select>
+      </div>
+      <div class="opt-block full">
+        <label class="title" for="extra">その他の要望(自由記述)</label>
+        <textarea id="extra" placeholder="例:身近な現象や産業への応用と結びつけてほしい/実験の安全上の注意を強調してほしい/思考の過程を問う探究的な設計にしてほしい など"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <div class="generate-area">
+    <button class="btn-generate" id="btnGenerate">✨ プロンプトを生成する</button>
+    <p class="gen-warn" id="genWarn" role="alert"></p>
+  </div>
+
+  <section class="report" id="report" aria-live="polite">
+    <div class="report-bar">
+      <span class="title">📋 生成されたプロンプト</span>
+      <div class="report-actions">
+        <button class="btn-copy" id="btnCopy">コピーする</button>
+        <button class="btn-dl" id="btnDl">.txtで保存</button>
+      </div>
+    </div>
+    <pre id="promptOut"></pre>
+  </section>
+
+  <div class="next-steps" id="nextSteps">
+    <strong>次にすること</strong>
+    <ol>
+      <li>上の「コピーする」ボタンでプロンプトをコピーします。</li>
+      <li>生成AI(Claude・ChatGPT・Geminiなど)のチャット欄に貼り付けて送信します。</li>
+      <li>生成されたHTMLコードを「メモ帳」などに貼り付け、「〇〇.html」という名前で保存します(Claudeの場合はプレビューがそのまま表示されます)。</li>
+      <li>保存したファイルをダブルクリックすると、ブラウザで教材が開きます。</li>
+      <li>直したいところがあれば、続けて「この設問を難しくして」「グラフを追加して」のように日本語で頼めば修正できます。</li>
+    </ol>
+  </div>
+
+  <div class="howto">
+    <h3>💡 うまくいくコツ</h3>
+    <ol>
+      <li>一度で完璧を目指さず、「生成 → 試す → 直してもらう」を繰り返すのがコツです。</li>
+      <li>生成された内容(用語・数値・化学式・実験手順・計算過程)は、必ず教科書や資料集と照らして確認してから授業で使いましょう。生成AIは誤りを含むことがあります。</li>
+      <li>「その他の要望」に生徒の実態や重点を書くと、より狙いに合った教材になります。</li>
+    </ol>
+  </div>
+
+</div>
+
+<script>
+/* ================= データ ================= */
+const GRADES = ["高校1年","高校2年","高校3年"];
+
+/* 学年ごとに標準的に開講される科目(目安)。実際の履修学年は学校により異なる。
+   基礎科目はどの学年でも履修・復習しうるため全学年に含める */
+const GRADE_SUBJECTS = {
+  "高校1年":["科学と人間生活","物理基礎","化学基礎","生物基礎","地学基礎"],
+  "高校2年":["科学と人間生活","物理基礎","化学基礎","生物基礎","地学基礎","物理","化学","生物","地学"],
+  "高校3年":["物理基礎","化学基礎","生物基礎","地学基礎","物理","化学","生物","地学"]
+};
+
+/* 高等学校学習指導要領(平成30年告示)理科の科目・内容に基づく単元 */
+const UNITS = {
+  "科学と人間生活":[
+    ["光や熱の科学","太陽光や光の性質、熱の性質と利用(熱の発生・移動、エネルギーの変換)を扱う。"],
+    ["物質の科学","材料とその再利用(金属・プラスチックなど)、食品と衣料の科学を扱う。"],
+    ["生命の科学","ヒトの生命現象(神経系・血液など)、微生物とその利用を扱う。"],
+    ["宇宙や地球の科学","身近な天体と太陽系の中の地球、身近な自然景観と自然災害を扱う。"],
+    ["これからの科学と人間生活","科学技術の発展が人間生活に及ぼす影響を扱う。"]
+  ],
+  "物理基礎":[
+    ["運動の表し方","速度・加速度、等加速度直線運動、自由落下・鉛直投げ上げを扱う。"],
+    ["様々な力とその働き","力のつり合い、作用・反作用、摩擦力、圧力・浮力、運動の法則(運動方程式)を扱う。"],
+    ["力学的エネルギー","仕事と仕事率、運動エネルギーと位置エネルギー、力学的エネルギーの保存を扱う。"],
+    ["熱","熱と温度、熱量の保存、熱と仕事、エネルギーの変換と保存を扱う。"],
+    ["波","波の性質(波長・振動数・速さ)、横波と縦波、音の性質(反射・屈折・共鳴)を扱う。"],
+    ["電気","電気の性質、直流回路(電圧・電流・抵抗、オームの法則)、電力を扱う。"],
+    ["エネルギーの利用","電気の発生と利用、発電と送電、様々なエネルギーとその利用を扱う。"]
+  ],
+  "物理":[
+    ["平面内の運動と剛体のつり合い","放物運動、相対速度、剛体にはたらく力のモーメントとつり合いを扱う。"],
+    ["運動量","運動量と力積、運動量保存の法則、反発係数と衝突を扱う。"],
+    ["円運動と単振動","等速円運動、慣性力、単振動、万有引力と惑星の運動(ケプラーの法則)を扱う。"],
+    ["気体分子の運動","気体の状態方程式、気体分子の運動と圧力、内部エネルギー、熱力学第一法則を扱う。"],
+    ["波の伝わり方","波の重ね合わせと干渉、反射・屈折、回折、定常波を扱う。"],
+    ["音と光","ドップラー効果、光の反射・屈折・分散、レンズ、干渉と回折を扱う。"],
+    ["電気と電流","静電気力(クーロンの法則)、電場と電位、コンデンサー、直流回路を扱う。"],
+    ["電流と磁界","電流がつくる磁界、電流が磁界から受ける力、ローレンツ力を扱う。"],
+    ["電磁誘導と電磁波","電磁誘導の法則、自己誘導・相互誘導、交流、電磁波を扱う。"],
+    ["電子と光","電子の電荷と質量、光電効果、光の粒子性、X線を扱う。"],
+    ["原子と原子核","原子の構造、放射線と原子核、核反応と核エネルギー、素粒子を扱う。"]
+  ],
+  "化学基礎":[
+    ["化学と人間生活","人間生活の中の化学、化学とその役割(身の回りの物質と化学)を扱う。"],
+    ["物質の成分と構成元素","純物質と混合物、物質の分離・精製、元素、原子の構造と同位体、電子配置を扱う。"],
+    ["物質と化学結合","イオンとイオン結合、金属結合、共有結合と分子、結晶の種類を扱う。"],
+    ["物質量と化学反応式","原子量・分子量・式量、物質量(mol)、化学反応式と量的関係を扱う。"],
+    ["化学反応","酸と塩基、水素イオン濃度とpH、中和反応と塩、酸化還元反応、金属のイオン化傾向を扱う。"]
+  ],
+  "化学":[
+    ["物質の状態と平衡","状態変化と熱運動、気体の法則(ボイル・シャルルの法則)、溶解と溶解度、希薄溶液の性質、コロイドを扱う。"],
+    ["物質の変化と平衡","化学反応と熱・光(エンタルピー)、電池と電気分解、反応速度、化学平衡と平衡移動(ルシャトリエの原理)を扱う。"],
+    ["無機物質の性質","非金属元素の単体と化合物、典型金属元素、遷移元素、金属イオンの分離・分析を扱う。"],
+    ["有機化合物の性質","有機化合物の特徴と構造、脂肪族炭化水素、アルコール・アルデヒド・カルボン酸、芳香族化合物を扱う。"],
+    ["高分子化合物","天然高分子(糖類・タンパク質・核酸)、合成高分子(合成繊維・プラスチック・ゴム)を扱う。"],
+    ["化学が果たす役割","化学が果たす役割と物質の探究(実験・観察による探究活動)を扱う。"]
+  ],
+  "生物基礎":[
+    ["生物の特徴","生物の共通性と多様性、細胞とエネルギー(代謝、ATP、酵素、光合成と呼吸の概観)を扱う。"],
+    ["遺伝子とその働き","DNAの構造と複製、遺伝情報の分配、遺伝情報とタンパク質の合成を扱う。"],
+    ["神経系と内分泌系による調節","体内環境の維持、自律神経系とホルモンによる調節、血糖濃度の調節、体液の恒常性を扱う。"],
+    ["免疫","生体防御、自然免疫と適応免疫(獲得免疫)、免疫と医療(予防接種・アレルギー)を扱う。"],
+    ["植生と遷移","植生とバイオーム、遷移の仕組み、気候とバイオームの分布を扱う。"],
+    ["生態系とその保全","生態系の物質循環とエネルギーの流れ、生態系のバランスと保全、生物多様性を扱う。"]
+  ],
+  "生物":[
+    ["生物の進化","生命の起源と細胞の進化、遺伝子の変化と進化のしくみ(自然選択・遺伝的浮動)、生物の系統と分類を扱う。"],
+    ["生命現象と物質","細胞の構造と働き、タンパク質の構造と機能、酵素、代謝(呼吸・光合成の詳細)を扱う。"],
+    ["遺伝情報の発現と発生","遺伝情報の発現(転写・翻訳の詳細)、遺伝子の発現調節、発生と遺伝子発現、バイオテクノロジーを扱う。"],
+    ["生物の環境応答","刺激の受容と反応(神経・効果器)、動物の行動、植物の環境応答(植物ホルモン・光受容)を扱う。"],
+    ["生態と環境","個体群と生物群集、生態系の物質生産と物質循環、生態系と生物多様性の保全を扱う。"]
+  ],
+  "地学基礎":[
+    ["惑星としての地球","地球の形と大きさ、地球内部の層構造、プレートの運動を扱う。"],
+    ["活動する地球","地震(地震波・断層)と火山活動、変成作用と造山運動を扱う。"],
+    ["大気と海洋","大気の構造と大気圏、地球のエネルギー収支、大気と海水の運動を扱う。"],
+    ["地球の変遷","地層と化石、古生物の変遷と地球環境、地質時代の区分を扱う。"],
+    ["地球の環境","地球環境の科学(地球温暖化・オゾン層など)、日本の自然環境と自然災害・防災を扱う。"]
+  ],
+  "地学":[
+    ["地球の概観","地球の形状・重力・磁気、地球の内部構造と物質を扱う。"],
+    ["地球の活動と歴史","プレートテクトニクス、地震と火山活動の仕組み、地層の形成と地球の歴史、古生物の変遷を扱う。"],
+    ["地球の大気と海洋","大気の運動と気象、海洋の構造と海水の運動、気候の変動を扱う。"],
+    ["宇宙の構造","太陽系の構造と諸天体、太陽の活動、恒星の性質と進化、銀河系と宇宙の構造を扱う。"]
+  ]
+};
+
+const TYPES = [
+  {id:"sim", icon:"🎛️", name:"シミュレーション教材",
+   desc:"スライダーやボタンで条件を変え、現象の変化をその場で確かめる",
+   req:"・学習内容の中心となる現象を、科学的に妥当なモデルでシミュレーションすること\n・生徒がスライダーやボタンで条件(パラメータ)を自分で変えられるようにすること\n・条件を変えた結果が、アニメーションや数値・グラフでリアルタイムに表示されること\n・「予想→操作→観察→考察」の探究的な流れになるよう、最初に予想を促し、最後に考察を促す問いを表示すること\n・極端な値を入れても破綻しない(エラーにならない)ようにすること"},
+  {id:"anim", icon:"🎬", name:"アニメーション解説",
+   desc:"目に見えない現象やプロセスを段階的なアニメで解説する",
+   req:"・学習内容を複数の場面(ステップ)に分け、順番にアニメーションで見せること\n・「再生/一時停止」「前へ/次へ」で生徒が自分のペースで進められること\n・各場面に解説文を添え、現在の段階が分かる進行表示を付けること\n・目に見えない対象(分子・イオン・電場・波・プレートなど)を色や動きで可視化すること"},
+  {id:"quiz", icon:"✅", name:"確認テスト",
+   desc:"選択・記述式で理解を確認。即時フィードバックと解説つき",
+   req:"・単元の重要事項をバランスよく出題すること(選択式を中心に、必要に応じ数値入力も可)\n・解答するとすぐに正誤が分かり、正解・不正解のどちらでも解説が表示されること\n・最後に得点と、間違えた問題の振り返り一覧を表示すること\n・「もう一度挑戦」で問題順をシャッフルして再挑戦できること\n・よくある誤答・誤概念を選択肢に含め、解説でつまずきの原因まで示すこと"},
+  {id:"calc", icon:"🧮", name:"計算演習・ステップ解説",
+   desc:"物理・化学の計算問題を、途中式つきで段階的に練習する",
+   req:"・単元に関する計算問題を出題し、解答を確認できること(物理量・化学量の計算など)\n・単に答え合わせをするだけでなく、解答の途中式・立式の考え方を段階的に(ステップごとに)示すこと\n・数値を変えた類題を複数用意し、繰り返し練習できること\n・単位や有効数字の扱いにも触れること\n・つまずいた生徒向けに、ヒントを段階的に開けるようにすること"},
+  {id:"drill", icon:"🔁", name:"フラッシュカード・一問一答",
+   desc:"用語・反応・図をカードで反復練習。すきま時間や暗記に",
+   req:"・単元の重要用語・化学反応・図などをカード形式(表:問い/裏:答えと一言解説)で練習できること\n・タップ(クリック)でカードがめくれ、「覚えた/まだ」で仕分けできること\n・「まだ」のカードだけを繰り返すモードを付けること\n・シャッフル機能と進捗表示(残り枚数)を付けること"},
+  {id:"lab", icon:"⚗️", name:"バーチャル実験",
+   desc:"実験の手順や結果を画面上で疑似体験。事前指導や振り返りに",
+   req:"・単元の代表的な実験を、画面上の操作で疑似体験できるようにすること\n・手順を順番に操作させ、操作に応じて結果(色の変化・数値・グラフなど)が変化して見えること\n・実際の実験前の見通しづくり、または実験後の振り返りに使えることを意識すること\n・その実験に応じた安全上の注意(保護眼鏡・換気・薬品の扱い・廃液処理など)を必ず画面内に表示すること\n・「これは実際の観察・実験の代替ではなく、それと組み合わせて使うもの」という前提で作ること"},
+  {id:"diagram", icon:"🔍", name:"インタラクティブ図解",
+   desc:"図の各部をタップすると説明が出る。構造・装置・機構の学習に",
+   req:"・学習内容の中心となる図(細胞や器官のつくり、実験装置、地質断面、天体の配置、回路など)を大きく表示すること\n・図の各部分をタップ(クリック)すると、名称と働き・意味の説明が表示されること\n・「名称を隠してテストするモード」を付け、暗記の確認にも使えるようにすること\n・図はSVGなどで描き、画像ファイルを使わずHTML内で完結させること"},
+  {id:"graph", icon:"📈", name:"グラフ・データ分析",
+   desc:"実験データやグラフを操作・読み取り、規則性を考察する",
+   req:"・単元に関する実験データやグラフを扱い、生徒が読み取り・考察できるようにすること\n・グラフの軸やデータ点を操作したり、複数の条件を切り替えて比較したりできること\n・グラフから読み取れる規則性・関係(比例、反比例、指数的変化など)を問う設問を付けること\n・データに基づいて結論を導く、科学的な思考の流れを体験できる設計にすること"}
+];
+
+const DEVICE = {
+  tablet:"生徒が1人1台のタブレットやChromebookで使います。タッチ操作を前提とし、ボタンは押しやすい大きさにしてください。",
+  pc:"生徒がPC(マウス操作)で使います。",
+  projector:"教師が電子黒板・プロジェクターで一斉提示して使います。教室の後ろからでも見えるよう、文字や図は特に大きくしてください。"
+};
+
+const PURPOSE = {
+  "授業内":"授業内で、現象の提示やその場での演習に使います。",
+  "予習復習":"生徒が家庭などで予習・復習のために一人で使います。説明は自習でも理解できるよう丁寧にしてください。",
+  "実験前後":"実験・観察の事前指導や事後の振り返りに使います。実物の実験・観察と関連づけてください。",
+  "受験対策":"大学入試を意識した問題演習に使います。頻出パターンや思考力を要する問題を意識してください。"
+};
+
+/* ================= 状態 ================= */
+let selGrade=null, selSubject=null, selUnit=null, selType=null;
+
+/* ================= UI 構築 ================= */
+const gradeChips=document.getElementById("gradeChips");
+const subjChips=document.getElementById("subjChips");
+const unitChips=document.getElementById("unitChips");
+const unitLabel=document.getElementById("unitLabel");
+const typeCards=document.getElementById("typeCards");
+
+GRADES.forEach(g=>{
+  const b=document.createElement("button");
+  b.type="button";b.className="chip";b.textContent=g;b.setAttribute("aria-pressed","false");
+  b.onclick=()=>{
+    selGrade=g;selSubject=null;selUnit=null;
+    [...gradeChips.children].forEach(c=>{c.classList.toggle("on",c===b);c.setAttribute("aria-pressed",c===b);});
+    renderSubjects(g);
+    unitChips.innerHTML="";unitLabel.style.display="none";
+  };
+  gradeChips.appendChild(b);
+});
+
+function renderSubjects(g){
+  subjChips.innerHTML="";
+  GRADE_SUBJECTS[g].forEach(s=>{
+    const b=document.createElement("button");
+    b.type="button";b.className="chip subj";b.textContent=s;b.setAttribute("aria-pressed","false");
+    b.onclick=()=>{
+      selSubject=s;selUnit=null;
+      [...subjChips.children].forEach(c=>{c.classList.toggle("on",c===b);c.setAttribute("aria-pressed",c===b);});
+      renderUnits(s);
+    };
+    subjChips.appendChild(b);
+  });
+}
+
+function renderUnits(subject){
+  unitChips.innerHTML="";
+  unitLabel.style.display="block";
+  UNITS[subject].forEach(u=>{
+    const b=document.createElement("button");
+    b.type="button";b.className="chip";b.textContent=u[0];b.setAttribute("aria-pressed","false");
+    b.onclick=()=>{
+      selUnit=u;
+      document.getElementById("customUnit").value="";
+      [...unitChips.children].forEach(c=>{c.classList.toggle("on",c===b);c.setAttribute("aria-pressed",c===b);});
+    };
+    unitChips.appendChild(b);
+  });
+}
+
+document.getElementById("customUnit").addEventListener("input",e=>{
+  if(e.target.value.trim()){
+    selUnit=null;
+    [...unitChips.children].forEach(c=>{c.classList.remove("on");c.setAttribute("aria-pressed","false");});
+  }
+});
+
+TYPES.forEach(t=>{
+  const b=document.createElement("button");
+  b.type="button";b.className="card";b.setAttribute("aria-pressed","false");
+  b.innerHTML=`<span class="icon">${t.icon}</span><span class="name">${t.name}</span><p class="desc">${t.desc}</p>`;
+  b.onclick=()=>{
+    selType=t;
+    [...typeCards.children].forEach(c=>{c.classList.toggle("on",c===b);c.setAttribute("aria-pressed",c===b);});
+  };
+  typeCards.appendChild(b);
+});
+
+/* ================= プロンプト生成 ================= */
+function buildPrompt(){
+  const customUnit=document.getElementById("customUnit").value.trim();
+  const unitName=customUnit || (selUnit?selUnit[0]:"");
+  const unitDesc=customUnit?"":(selUnit?selUnit[1]:"");
+  const level=document.getElementById("level").value;
+  const purpose=PURPOSE[document.getElementById("purpose").value];
+  const count=document.getElementById("quizCount").value;
+  const device=DEVICE[document.getElementById("device").value];
+  const math=document.getElementById("math").value;
+  const extra=document.getElementById("extra").value.trim();
+
+  const levelText={
+    "標準":"教科書レベルの標準的な内容にしてください。",
+    "基礎":"基礎固めを重視してください。つまずきやすい生徒でも取り組めるよう、平易な言葉・スモールステップ・丁寧なフィードバックを心がけてください。",
+    "共通テスト":"大学入学共通テストを意識し、暗記だけでなく、資料やグラフの読み取り・思考力を問う要素を含めてください。",
+    "発展":"教科書レベルに加えて、国公立二次・難関私大レベルの発展的な内容や応用問題も含めてください。"
+  }[level];
+
+  const mathText = math==="on"
+    ? "数式やグラフを適切に用いてください。数式は読みやすく表示し(必要ならMathJax等をCDNで読み込んでも可、ただし読み込めない場合も内容が伝わるようにすること)、グラフはSVGやCanvasで描いてください。"
+    : "数式は最小限にとどめ、現象の定性的な理解を重視してください。";
+
+  let typeReq=selType.req;
+  if(selType.id==="quiz"||selType.id==="drill"||selType.id==="calc"){
+    typeReq+=`\n・問題(カード)数は ${count} 問(枚)程度にすること`;
+  }
+
+  const lines=[];
+  lines.push("あなたは、日本の高等学校理科に精通した教材開発の専門家であり、優れたWebエンジニアでもあります。");
+  lines.push("以下の条件を満たす、ブラウザだけで動作するインタラクティブなHTML教材を1つ作成してください。");
+  lines.push("");
+  lines.push("■ 対象");
+  lines.push(`・${selGrade}`);
+  lines.push(`・科目:${selSubject}(高等学校学習指導要領 平成30年告示に準拠)`);
+  lines.push("");
+  lines.push("■ 単元");
+  lines.push(`・${unitName}`);
+  if(unitDesc) lines.push(`・単元の主な学習内容:${unitDesc}`);
+  else lines.push("・このテーマで扱うべき内容を、上記科目の学習指導要領の範囲に沿ってあなたが適切に設定してください。");
+  lines.push("");
+  lines.push(`■ 教材の種類:${selType.name}`);
+  lines.push(typeReq);
+  lines.push("");
+  lines.push("■ レベル");
+  lines.push("・"+levelText);
+  lines.push("");
+  lines.push("■ 使う場面");
+  lines.push("・"+purpose);
+  lines.push("");
+  lines.push("■ 内容・表記の要件");
+  lines.push(`・${selSubject}の学習指導要領が定める範囲を踏まえ、その範囲を大きく超える内容は原則含めないこと`);
+  lines.push("・高校生が理解できる語彙・説明にしつつ、科学的な正確さ(用語・化学式・単位・法則名など)を保つこと");
+  lines.push("・"+mathText);
+  lines.push("・"+device);
+  lines.push("・落ち着いて学習に集中できる、見やすく整ったデザインにすること");
+  lines.push("・色だけに頼らず、形や文字でも情報が伝わるようにすること(色覚の多様性への配慮)");
+  if(extra){
+    lines.push("");
+    lines.push("■ 先生からの追加の要望");
+    lines.push("・"+extra);
+  }
+  lines.push("");
+  lines.push("■ 正確さと安全について");
+  lines.push("・科学的に正しい内容にすること。誤りや不確かな点があれば、断定を避けること");
+  lines.push("・実験・観察を扱う場合は、安全上の注意(薬品・火気・電気・器具の扱いなど)を必ず含めること");
+  lines.push("");
+  lines.push("■ 技術要件");
+  lines.push("・HTML/CSS/JavaScriptを1つのHTMLファイルにまとめること(原則、外部ファイルや画像ファイルは使わない)");
+  lines.push("・図やイラストが必要な場合は、SVG・Canvas・CSSで表現すること");
+  lines.push("・スマートフォン・タブレット・PCのどの画面サイズでも崩れないこと");
+  lines.push("");
+  lines.push("■ 出力形式");
+  lines.push("・完成したHTMLコードを、1つのコードブロックとして出力してください");
+  lines.push("・コードの前に、教材の使い方の説明を3行以内で書いてください");
+
+  return lines.join("\n");
+}
+
+/* ================= イベント ================= */
+const warn=document.getElementById("genWarn");
+const report=document.getElementById("report");
+const out=document.getElementById("promptOut");
+const nextSteps=document.getElementById("nextSteps");
+
+document.getElementById("btnGenerate").onclick=()=>{
+  const customUnit=document.getElementById("customUnit").value.trim();
+  if(!selGrade){warn.textContent="⚠ ステップ1で学年を選んでください。";return;}
+  if(!selSubject){warn.textContent="⚠ ステップ2で科目を選んでください。";return;}
+  if(!selUnit && !customUnit){warn.textContent="⚠ ステップ2で単元を選ぶか、自由入力してください。";return;}
+  if(!selType){warn.textContent="⚠ ステップ3で教材の種類を選んでください。";return;}
+  warn.textContent="";
+  out.textContent=buildPrompt();
+  report.classList.add("show");nextSteps.classList.add("show");
+  report.scrollIntoView({behavior:"smooth",block:"start"});
+  const btnCopy=document.getElementById("btnCopy");
+  btnCopy.textContent="コピーする";btnCopy.classList.remove("copied");
+};
+
+document.getElementById("btnCopy").onclick=async function(){
+  const text=out.textContent;
+  try{await navigator.clipboard.writeText(text);}
+  catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand("copy");document.body.removeChild(ta);
+  }
+  this.textContent="✓ コピーしました";this.classList.add("copied");
+  setTimeout(()=>{this.textContent="コピーする";this.classList.remove("copied");},2500);
+};
+
+document.getElementById("btnDl").onclick=()=>{
+  const blob=new Blob([out.textContent],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="rika_prompt_hs.txt";a.click();
+  URL.revokeObjectURL(a.href);
+};
+</script>
+</body>
+</html>
